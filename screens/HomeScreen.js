@@ -62,6 +62,7 @@ export default function HomeScreen() {
   }, []);
 
   const getDice = () => {
+    //comment to make pull request.
     let diceComponents = [];
     for (let i = 0; i < numDice; i++) {
       diceComponents.push(<Text key={i} style={styles.die}>{state === WAITING ? dice[i] : getRoll()}</Text>);
