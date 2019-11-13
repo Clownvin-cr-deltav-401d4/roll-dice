@@ -7,16 +7,19 @@ import {
   View,
   Slider,
 } from 'react-native';
+import Swiper from 'react-native-swiper';
 
 import { Accelerometer } from 'expo-sensors';
 import { useKeepAwake } from 'expo-keep-awake';
 
 const WAITING = 'Waiting for rolling motion...', ROLLING = 'Rolling...';
+const UNICODE_FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+const NUMBERS = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
 
 export default function HomeScreen() {
   useKeepAwake();
 
-  let [dice, setDice] = useState(Array(100).fill(1));
+  let [dice, setDice] = useState(Array(50).fill(1));
   let [state, setState] = useState(WAITING);
   let [sides, setSides] = useState(6);
   let [numDice, setNumDice] = useState(1);
@@ -27,9 +30,10 @@ export default function HomeScreen() {
     z: 1,
     velocity: 0,
   });
+  let [history, setHistory] = useState([]);
 
   const getRoll = () => {
-    return Math.floor(Math.random() * (sides - 1)) + 1;
+    return Math.floor(Math.random() * sides) + 1;
   }
 
   let subscription;
@@ -52,7 +56,7 @@ export default function HomeScreen() {
   useEffect(() => {
     Accelerometer.isAvailableAsync().then(available => {
       if (available) {
-        Accelerometer.setUpdateInterval(100);
+        Accelerometer.setUpdateInterval(333);
         setSensorData({...sensorData, available: true});
         subscription = Accelerometer.addListener(changeSensorData);
       } else {
@@ -61,13 +65,33 @@ export default function HomeScreen() {
     });
   }, []);
 
+  const getDiceText = number => sides <= 6 ? UNICODE_FACES[number - 1] : number;
+
+  const diceTotal = (toTotal = dice) => toTotal.reduce((total, value, index) => index < numDice ? total + value : total, 0);
+
   const getDice = () => {
     //comment to make pull request.
     let diceComponents = [];
     for (let i = 0; i < numDice; i++) {
-      diceComponents.push(<Text key={i} style={styles.die}>{state === WAITING ? dice[i] : getRoll()}</Text>);
+      diceComponents.push(<Text key={i} style={sides < 7 ? styles.die : styles.dieNumber }>{getDiceText(state === WAITING ? dice[i] : getRoll())}</Text>);
     }
     return diceComponents;
+  };
+
+  const getHistory = () => {
+    return history.reduce((history, roll, index) => {
+      history.push(
+        <View key={index}>
+          <Text style={styles.majorText}>Rolled {NUMBERS[roll.count - 1]} {roll.sides} sided {roll.count > 1 ? 'dice' : 'die'}</Text>
+          <Text style={styles.minorText}>Total: {roll.total}</Text>
+        </View>
+      );
+      return history;
+    }, []);
+  }
+
+  const addHistory = (dice) => {
+    setHistory(history => [{count: numDice, sides: sides, total: diceTotal(dice)}, ...history].slice(0, 10));
   };
 
   if (sensorData.velocity > 1.2 && state !== ROLLING) {
@@ -76,26 +100,46 @@ export default function HomeScreen() {
 
   if (sensorData.velocity < 1.2 && state !== WAITING) {
     setState(WAITING);
-    setDice(dice => dice.map((die, index) => index < numDice ? Math.round(Math.random() * (sides - 1)) + 1 : die));
+    const newDice = dice.map((value, index) => index < numDice ? getRoll() : value);
+    setDice(newDice);
+    addHistory(newDice);
   }
 
   return (
-    <View style={styles.container}>
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.contentContainer}>
-        <Text style={styles.getStartedText}>Shake to roll {numDice} {sides} sided dice...</Text>
-        <Slider onValueChange={changeSides} value={sides} minimumValue={2} maximumValue={20}></Slider>
-        <Slider onValueChange={changeNumDice} value={numDice} minimumValue={1} maximumValue={100}></Slider>
-        <Text style={styles.getStartedtext}>Velocity: {sensorData.velocity}</Text>
-        <Text style={styles.getStartedtext}>State: {state}</Text>
+    <Swiper style={{}} showButtons={true}>
+      <View style={styles.container}>
         <ScrollView
-          style={styles.diceContainer}
+          style={styles.container}
           contentContainerStyle={styles.contentContainer}>
-          {getDice()}
+            <Text style={styles.headerText}>Configuration</Text>
+          <Text style={styles.majorText}>Number of sides: {sides}</Text>
+          <Slider style={styles.slider} onValueChange={changeSides} value={sides} minimumValue={2} maximumValue={20}></Slider>
+          <Text style={styles.majorText}>Number of dice: {numDice}</Text>
+          <Slider style={styles.slider} onValueChange={changeNumDice} value={numDice} minimumValue={1} maximumValue={12}></Slider>
         </ScrollView>
-      </ScrollView>
-    </View>
+      </View>
+      <View style={styles.container}>
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={styles.contentContainer}>
+          <Text style={styles.headerText}>Shake to roll...</Text>
+          <View
+            style={styles.diceContainer}
+            contentContainerStyle={styles.contentContainer}>
+            {getDice()}
+          </View>
+  <Text style={styles.majorText}>Total: {state === ROLLING ? '...' : diceTotal()}</Text>
+        </ScrollView>
+      </View>
+      <View style={styles.container}>
+        <ScrollView
+            style={styles.container}
+            contentContainerStyle={styles.contentContainer}>
+            <Text style={styles.headerText}>History</Text>
+            {getHistory()}
+        </ScrollView>
+      </View>
+    </Swiper>
   );
 }
 
@@ -104,19 +148,43 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  slider: {
+    //transform: [{scaleX: 1}, {scaleY: 1.5}],
+  },
+  statusMessage: {
+    fontSize: 12,
+    color: '#888',
+    textAlign: 'center',
+  },
   diceContainer: {
+    textAlign: 'center',
+    alignContent: "center",
+    justifyContent: "space-evenly",
+    margin: 10,
     display: 'flex',
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    flexGrow: 10,
+  },
+  dieNumber: {
+    width: 80,
+    height: 80,
+    borderRadius: 5,
+    borderWidth: 2,
+    marginBottom: 10,
+    borderColor: '#222',
+    textAlign: 'center',
+    fontSize: 50,
+    lineHeight: 80,
   },
   die: {
-    borderWidth: 2,
-    width: 100,
-    height: 100,
-    margin: 10,
+    width: 80,
+    height: 80,
     borderRadius: 5,
     borderColor: '#222',
     textAlign: 'center',
-    fontSize: 60,
+    fontSize: 75,
+    lineHeight: 80,
   },
   developmentModeText: {
     marginBottom: 20,
@@ -155,10 +223,25 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     paddingHorizontal: 4,
   },
-  getStartedText: {
-    fontSize: 17,
-    color: 'rgba(96,100,109, 1)',
-    lineHeight: 24,
+  headerText: {
+    fontSize: 30,
+    height: 50,
+    color: '#000',
+    lineHeight: 50,
+    textAlign: 'center',
+  },
+  majorText: {
+    fontSize: 22,
+    height: 35,
+    color: '#888',
+    lineHeight: 35,
+    textAlign: 'center',
+  },
+  minorText: {
+    fontSize: 12,
+    height: 20,
+    color: '#444',
+    lineHeight: 20,
     textAlign: 'center',
   },
   tabBarInfoContainer: {

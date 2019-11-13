@@ -25,6 +25,8 @@
     ],
     "ios": {
       "supportsTablet": true
-    }
+    },
+    "description": "Yes",
+    "githubUrl": "https://github.com/Clownvin-cr-deltav-401d4/roll-dice"
   }
 }
