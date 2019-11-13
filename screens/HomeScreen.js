@@ -56,7 +56,7 @@ export default function HomeScreen() {
   useEffect(() => {
     Accelerometer.isAvailableAsync().then(available => {
       if (available) {
-        Accelerometer.setUpdateInterval(100);
+        Accelerometer.setUpdateInterval(333);
         setSensorData({...sensorData, available: true});
         subscription = Accelerometer.addListener(changeSensorData);
       } else {
@@ -82,8 +82,8 @@ export default function HomeScreen() {
     return history.reduce((history, roll, index) => {
       history.push(
         <View key={index}>
-          <Text style={styles.getStartedText}>Rolled {NUMBERS[roll.count - 1]} {roll.sides} sided {roll.count > 1 ? 'dice' : 'die'}</Text>
-          <Text style={styles.getStartedText}>Total: {roll.total}</Text>
+          <Text style={styles.majorText}>Rolled {NUMBERS[roll.count - 1]} {roll.sides} sided {roll.count > 1 ? 'dice' : 'die'}</Text>
+          <Text style={styles.minorText}>Total: {roll.total}</Text>
         </View>
       );
       return history;
@@ -91,7 +91,7 @@ export default function HomeScreen() {
   }
 
   const addHistory = (dice) => {
-    setHistory(history => [{count: numDice, sides: sides, total: diceTotal(dice)}, ...history].slice(0, 5));
+    setHistory(history => [{count: numDice, sides: sides, total: diceTotal(dice)}, ...history].slice(0, 10));
   };
 
   if (sensorData.velocity > 1.2 && state !== ROLLING) {
@@ -100,7 +100,7 @@ export default function HomeScreen() {
 
   if (sensorData.velocity < 1.2 && state !== WAITING) {
     setState(WAITING);
-    const newDice = dice.map((_, index) => index < numDice ? getRoll() : _);
+    const newDice = dice.map((value, index) => index < numDice ? getRoll() : value);
     setDice(newDice);
     addHistory(newDice);
   }
@@ -111,10 +111,10 @@ export default function HomeScreen() {
         <ScrollView
           style={styles.container}
           contentContainerStyle={styles.contentContainer}>
-            <Text style={styles.getStartedText}>Configuration</Text>
-          <Text style={styles.getStartedText}>Number of sides: {sides}</Text>
+            <Text style={styles.headerText}>Configuration</Text>
+          <Text style={styles.majorText}>Number of sides: {sides}</Text>
           <Slider style={styles.slider} onValueChange={changeSides} value={sides} minimumValue={2} maximumValue={20}></Slider>
-          <Text style={styles.getStartedText}>Number of dice: {numDice}</Text>
+          <Text style={styles.majorText}>Number of dice: {numDice}</Text>
           <Slider style={styles.slider} onValueChange={changeNumDice} value={numDice} minimumValue={1} maximumValue={12}></Slider>
         </ScrollView>
       </View>
@@ -122,20 +122,20 @@ export default function HomeScreen() {
         <ScrollView
           style={styles.container}
           contentContainerStyle={styles.contentContainer}>
-          <Text style={styles.getStartedText}>Shake to roll...</Text>
+          <Text style={styles.headerText}>Shake to roll...</Text>
           <View
             style={styles.diceContainer}
             contentContainerStyle={styles.contentContainer}>
             {getDice()}
           </View>
-  <Text style={styles.getStartedText}>Total: {state === ROLLING ? '...' : diceTotal()}</Text>
+  <Text style={styles.majorText}>Total: {state === ROLLING ? '...' : diceTotal()}</Text>
         </ScrollView>
       </View>
       <View style={styles.container}>
         <ScrollView
             style={styles.container}
             contentContainerStyle={styles.contentContainer}>
-            <Text style={styles.getStartedText}>History</Text>
+            <Text style={styles.headerText}>History</Text>
             {getHistory()}
         </ScrollView>
       </View>
@@ -223,11 +223,25 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     paddingHorizontal: 4,
   },
-  getStartedText: {
+  headerText: {
     fontSize: 30,
     height: 50,
-    color: '#888',
+    color: '#000',
     lineHeight: 50,
+    textAlign: 'center',
+  },
+  majorText: {
+    fontSize: 22,
+    height: 35,
+    color: '#888',
+    lineHeight: 35,
+    textAlign: 'center',
+  },
+  minorText: {
+    fontSize: 12,
+    height: 20,
+    color: '#444',
+    lineHeight: 20,
     textAlign: 'center',
   },
   tabBarInfoContainer: {
