@@ -14,7 +14,7 @@ import { useKeepAwake } from 'expo-keep-awake';
 
 const WAITING = 'Waiting for rolling motion...', ROLLING = 'Rolling...';
 const UNICODE_FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
-const NUMBERS = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty'];
+const NUMBERS = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
 
 export default function HomeScreen() {
   useKeepAwake();
@@ -30,6 +30,7 @@ export default function HomeScreen() {
     z: 1,
     velocity: 0,
   });
+  let [history, setHistory] = useState([]);
 
   const getRoll = () => {
     return Math.floor(Math.random() * sides) + 1;
@@ -66,6 +67,8 @@ export default function HomeScreen() {
 
   const getDiceText = number => sides <= 6 ? UNICODE_FACES[number - 1] : number;
 
+  const diceTotal = (dice = dice) => dice.reduce((total, value, index) => index < numDice ? total + value : total, 0);
+
   const getDice = () => {
     //comment to make pull request.
     let diceComponents = [];
@@ -75,6 +78,22 @@ export default function HomeScreen() {
     return diceComponents;
   };
 
+  const getHistory = () => {
+    return history.reduce((history, roll, index) => {
+      history.push(
+        <View key={index}>
+          <Text style={styles.getStartedText}>Rolled {NUMBERS[roll.count - 1]} {roll.sides} sided {roll.count > 1 ? 'dice' : 'die'}</Text>
+          <Text style={styles.getStartedText}>Total: {roll.total}</Text>
+        </View>
+      );
+      return history;
+    }, []);
+  }
+
+  const addHistory = () => {
+    setHistory(history => [{count: numDice, sides: sides, total: diceTotal()}, ...history].slice(0, 5));
+  };
+
   if (sensorData.velocity > 1.2 && state !== ROLLING) {
     setState(ROLLING);
   }
@@ -82,6 +101,7 @@ export default function HomeScreen() {
   if (sensorData.velocity < 1.2 && state !== WAITING) {
     setState(WAITING);
     setDice(dice => dice.map((die, index) => index < numDice ? getRoll() : die));
+    addHistory();
   }
 
   return (
@@ -90,10 +110,11 @@ export default function HomeScreen() {
         <ScrollView
           style={styles.container}
           contentContainerStyle={styles.contentContainer}>
+            <Text style={styles.getStartedText}>Configuration</Text>
           <Text style={styles.getStartedText}>Number of sides: {sides}</Text>
-          <Slider onValueChange={changeSides} value={sides} minimumValue={2} maximumValue={20}></Slider>
+          <Slider style={styles.slider} onValueChange={changeSides} value={sides} minimumValue={2} maximumValue={20}></Slider>
           <Text style={styles.getStartedText}>Number of dice: {numDice}</Text>
-          <Slider onValueChange={changeNumDice} value={numDice} minimumValue={1} maximumValue={12}></Slider>
+          <Slider style={styles.slider} onValueChange={changeNumDice} value={numDice} minimumValue={1} maximumValue={12}></Slider>
         </ScrollView>
       </View>
       <View style={styles.container}>
@@ -106,11 +127,16 @@ export default function HomeScreen() {
             contentContainerStyle={styles.contentContainer}>
             {getDice()}
           </View>
-  <Text style={styles.getStartedText}>Total: {dice.reduce((total, value, index) => index < numDice ? total + value : total, 0)}</Text>
+  <Text style={styles.getStartedText}>Total: {state === ROLLING ? '...' : diceTotal()}</Text>
         </ScrollView>
       </View>
       <View style={styles.container}>
-      <Text style={styles.getStartedText}>Shake to roll {numDice} {sides} sided {numDice > 1 ? 'dice' : 'die'}</Text>
+        <ScrollView
+            style={styles.container}
+            contentContainerStyle={styles.contentContainer}>
+            <Text style={styles.getStartedText}>History</Text>
+            {getHistory()}
+        </ScrollView>
       </View>
     </Swiper>
   );
@@ -120,6 +146,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  slider: {
+    //transform: [{scaleX: 1}, {scaleY: 1.5}],
   },
   statusMessage: {
     fontSize: 12,
