@@ -67,7 +67,7 @@ export default function HomeScreen() {
 
   const getDiceText = number => sides <= 6 ? UNICODE_FACES[number - 1] : number;
 
-  const diceTotal = (dice = dice) => dice.reduce((total, value, index) => index < numDice ? total + value : total, 0);
+  const diceTotal = (toTotal = dice) => toTotal.reduce((total, value, index) => index < numDice ? total + value : total, 0);
 
   const getDice = () => {
     //comment to make pull request.
@@ -90,8 +90,8 @@ export default function HomeScreen() {
     }, []);
   }
 
-  const addHistory = () => {
-    setHistory(history => [{count: numDice, sides: sides, total: diceTotal()}, ...history].slice(0, 5));
+  const addHistory = (dice) => {
+    setHistory(history => [{count: numDice, sides: sides, total: diceTotal(dice)}, ...history].slice(0, 5));
   };
 
   if (sensorData.velocity > 1.2 && state !== ROLLING) {
@@ -100,8 +100,9 @@ export default function HomeScreen() {
 
   if (sensorData.velocity < 1.2 && state !== WAITING) {
     setState(WAITING);
-    setDice(dice => dice.map((die, index) => index < numDice ? getRoll() : die));
-    addHistory();
+    const newDice = dice.map((_, index) => index < numDice ? getRoll() : _);
+    setDice(newDice);
+    addHistory(newDice);
   }
 
   return (
